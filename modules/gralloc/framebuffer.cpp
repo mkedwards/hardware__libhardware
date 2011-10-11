@@ -102,8 +102,8 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
         const size_t offset = hnd->base - m->framebuffer->base;
         m->info.activate = FB_ACTIVATE_VBL;
         m->info.yoffset = offset / m->finfo.line_length;
-        if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) {
-            LOGE("FBIOPUT_VSCREENINFO failed");
+        if (ioctl(m->framebuffer->fd, FBIOPAN_DISPLAY, &m->info) == -1) {
+            LOGE("FBIOPAN_DISPLAY failed");
             m->base.unlock(&m->base, buffer); 
             return -errno;
         }
@@ -354,9 +354,15 @@ int fb_device_open(hw_module_t const* module, const char* name,
         status = mapFrameBuffer(m);
         if (status >= 0) {
             int stride = m->finfo.line_length / (m->info.bits_per_pixel >> 3);
-            int format = (m->info.bits_per_pixel == 32)
-                         ? HAL_PIXEL_FORMAT_RGBX_8888
-                         : HAL_PIXEL_FORMAT_RGB_565;
+            // int format = (m->info.bits_per_pixel == 32);
+            int format;
+            if (m->info.bits_per_pixel == 32)
+			    if (m->info.red.offset == 0)
+			        format = HAL_PIXEL_FORMAT_RGBX_8888;
+			    else
+			        format = HAL_PIXEL_FORMAT_BGRA_8888;
+            else
+                format = HAL_PIXEL_FORMAT_RGB_565;
 #ifdef NO_32BPP
             format = HAL_PIXEL_FORMAT_RGB_565;
 #endif
